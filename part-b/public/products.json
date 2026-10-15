@@ -1,0 +1,10 @@
+[
+  { "name": "Easy Personal Loan", "lender": "Riverstone Finance", "category": "personal", "rate": 8.99 },
+  { "name": "Fixed Personal Loan", "lender": "Harbour Credit", "category": "personal", "rate": 10.5 },
+  { "name": "Flexi Personal Loan", "lender": "Summit Lending", "category": "personal", "rate": 9.3 },
+  { "name": "Green Car Loan", "lender": "Summit Lending", "category": "car", "rate": 6.49 },
+  { "name": "New Car Loan", "lender": "Meridian Loans", "category": "car", "rate": 6.9 },
+  { "name": "Used Car Loan", "lender": "Brightpath Finance", "category": "car", "rate": 7.995 },
+  { "name": "Debt Consolidation Loan", "lender": "Riverstone Finance", "category": "debt-consolidation", "rate": 12.75 },
+  { "name": "Consolidation Plus", "lender": "Harbour Credit", "category": "debt-consolidation", "rate": 11.25 }
+]
