@@ -123,11 +123,34 @@ add_shortcode('acme_products', 'acme_render_products');
 
 // Returns the cheapest rate from a list of rates.
 function acme_cheapest_rate($rates) {
-    $cheapest = 0;
+    // The original function assumed $rates was iterable; reject invalid input before foreach can emit a warning.
+    if (!is_iterable($rates)) {
+        return null;
+    }
+
+    // The original value of zero prevented positive rates from ever becoming the cheapest; use null to represent no valid rate yet.
+    $cheapest = null;
+
     foreach ($rates as $rate) {
-        if ($rate < $cheapest) {
+        // The original function compared arbitrary values using PHP coercion; ignore values that are not numeric.
+        if (!is_numeric($rate)) {
+            continue;
+        }
+
+        // The original function had no consistent return type; normalize valid rates to floats before comparing them.
+        $rate = (float) $rate;
+
+        // The original function accepted negative and non-finite rates; ignore values that cannot represent a valid loan rate.
+        if ($rate < 0 || !is_finite($rate)) {
+            continue;
+        }
+
+        // The original comparison could not select a positive first value; initialize from the first valid rate, then compare normally.
+        if ($cheapest === null || $rate < $cheapest) {
             $cheapest = $rate;
         }
     }
+
+    // The original empty-list result was a misleading zero; return null when the iterable contained no valid rates.
     return $cheapest;
 }
