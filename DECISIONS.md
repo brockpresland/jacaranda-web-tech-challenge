@@ -2,6 +2,8 @@
 
 List 3-4 choices in total, drawn from across both tasks (A and B). For each: what you did, why, and one thing you chose NOT to do.
 
-1.
-2.
-3.
+1. I prepared the category query, used WordPress’s configured table prefix, and fetched only the required columns to improve security, portability, and efficiency; I kept the direct $wpdb approach rather than adding a new database abstraction because that would be excessive for this small shortcode.
+2. I replaced the lender N+1 query loop with one bulk query and an in-memory lookup, preserving graceful fallback for missing lenders; I did not rewrite everything as a SQL JOIN because keeping product retrieval separate was the smaller, easier-to-review change.
+3. I made acme_cheapest_rate() return the lowest valid non-negative numeric rate (or null when none exists) so zero remains valid and invalid input is unambiguous; I ignored non-numeric values instead of converting them to numbers, because invalid data could otherwise be mistaken for a valid low rate.
+4. I derived the displayed products from the original list and current filters with a Vue computed property, so Vue updates the results automatically without maintaining a duplicate list; I kept search as an immediate, case-insensitive name match because the eight local products do not justify debouncing or fuzzy-search complexity.
+5.  (bonus) I added Jacaranda-esque styling to the ProductList.vue component as a nice finishing touch. I did not add this styling to the App.vue component or index.html as this defeats the purpose of having separation of concerns through single file components.
