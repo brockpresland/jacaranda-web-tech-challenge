@@ -7,9 +7,36 @@
 
 function acme_get_products($category) {
     global $wpdb;
-    $results = $wpdb->get_results(
-        "SELECT * FROM wp_acme_products WHERE category = '" . $category . "' AND active = 1"
+
+    // The original function accepted any value; reject non-scalar input and return the same iterable type expected by the caller.
+    if (!is_scalar($category)) {
+        return [];
+    }
+
+    // The original category was not validated; normalize it to a safe WordPress key before using it as a category identifier.
+    $category = sanitize_key((string) $category);
+
+    // The original query hard-coded the default "wp_" prefix; use the configured WordPress table prefix instead.
+    $products_table = $wpdb->prefix . 'acme_products';
+
+    // The original SELECT * fetched unnecessary data; request only the columns used by the current renderer.
+    // The original query concatenated the category directly into SQL; use a prepared %s placeholder to prevent SQL injection.
+    $query = $wpdb->prepare(
+        "SELECT name, lender_id, rate FROM {$products_table} WHERE category = %s AND active = 1",
+        $category
     );
+
+    // The original query result was returned without checking for failure; retain the result so database errors can be handled explicitly.
+    $results = $wpdb->get_results(
+        $query
+    );
+
+    // The original function treated a failed query like a valid result; log the database error and return an empty iterable safely.
+    if ($results === null && $wpdb->last_error !== '') {
+        error_log('Acme Rate Table database query failed: ' . $wpdb->last_error);
+        return [];
+    }
+
     return $results;
 }
 
