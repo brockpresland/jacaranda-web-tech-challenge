@@ -41,22 +41,83 @@ function acme_get_products($category) {
 }
 
 function acme_render_products($atts) {
-    $atts = shortcode_atts(['category' => 'personal'], $atts);
+    // The original function used $wpdb without importing it into local scope; declare the WordPress database object as global.
+    global $wpdb;
+
+    // The original attribute parsing omitted the shortcode name; include it so WordPress attribute filters can target this shortcode.
+    $atts = shortcode_atts(['category' => 'personal'], $atts, 'acme_products');
     $products = acme_get_products($atts['category']);
 
-    $html = '<table class="acme-products">';
-    foreach ($products as $product) {
-        $lender = $wpdb->get_var(
-            "SELECT name FROM wp_acme_lenders WHERE id = " . $product->lender_id
+    // The original function rendered an empty table when no products were found; return a useful, safely translated empty-state message.
+    if (empty($products)) {
+        return '<p class="acme-products-empty">' . esc_html__('No products found.', 'acme-rate-table') . '</p>';
+    }
+
+    // The original code queried one lender per product; collect unique, valid lender IDs so they can be fetched in one query.
+    $lender_ids = array_values(array_unique(array_filter(array_map('absint', wp_list_pluck($products, 'lender_id')))));
+
+    // The original code had no reliable fallback for missing lenders or query failures; start with an empty lookup map.
+    $lenders = [];
+
+    if (!empty($lender_ids)) {
+        // The original lender query hard-coded the "wp_" prefix; use the configured WordPress table prefix instead.
+        $lenders_table = $wpdb->prefix . 'acme_lenders';
+
+        // The original lender ID was concatenated into SQL; create integer placeholders for a prepared bulk query.
+        $placeholders = implode(', ', array_fill(0, count($lender_ids), '%d'));
+
+        // The original N+1 queries fetched one lender at a time; fetch all required lenders with one prepared query.
+        $lender_query = $wpdb->prepare(
+            "SELECT id, name FROM {$lenders_table} WHERE id IN ({$placeholders})",
+            $lender_ids
         );
+
+        // The original code did not retain enough information to distinguish lender-query failure from missing data; fetch complete lender rows.
+        $lender_results = $wpdb->get_results($lender_query);
+
+        // The original code ignored database failures; log an explicit error while allowing the table to render with fallback lender names.
+        if ($lender_results === null && $wpdb->last_error !== '') {
+            error_log('Acme Rate Table lender query failed: ' . $wpdb->last_error);
+            $lender_results = [];
+        }
+
+        // The original code performed a query during every render-loop iteration; build an in-memory lender lookup instead.
+        foreach ($lender_results as $lender) {
+            $lenders[(int) $lender->id] = $lender->name;
+        }
+    }
+
+    // The original table had no caption or column headings; add screen-reader context and semantic headers.
+    $html = '<table class="acme-products">';
+    $html .= '<caption class="screen-reader-text">' . esc_html__('Available loan products', 'acme-rate-table') . '</caption>';
+    $html .= '<thead><tr>';
+    $html .= '<th scope="col">' . esc_html__('Product', 'acme-rate-table') . '</th>';
+    $html .= '<th scope="col">' . esc_html__('Lender', 'acme-rate-table') . '</th>';
+    $html .= '<th scope="col">' . esc_html__('Rate', 'acme-rate-table') . '</th>';
+    $html .= '</tr></thead><tbody>';
+
+    foreach ($products as $product) {
+        // The original code queried the database here and did not handle missing lenders; use the bulk lookup with a safe fallback label.
+        $lender = $lenders[(int) $product->lender_id] ?? __('Unknown lender', 'acme-rate-table');
+
         $html .= '<tr>';
-        $html .= '<td>' . $product->name . '</td>';
-        $html .= '<td>' . $lender . '</td>';
-        $html .= '<td>' . $product->rate . '%</td>';
+
+        // The original product name was inserted as raw HTML; escape database content to prevent stored cross-site scripting.
+        $html .= '<td>' . esc_html($product->name) . '</td>';
+
+        // The original lender name was inserted as raw HTML; escape it before adding it to the table.
+        $html .= '<td>' . esc_html($lender) . '</td>';
+
+        // The original rate was inserted as raw HTML; escape it before adding the percentage suffix.
+        $html .= '<td>' . esc_html($product->rate) . '%</td>';
         $html .= '</tr>';
     }
-    $html .= '</table>';
-    echo $html;
+
+    // The original table did not close its new semantic body section; close the body before closing the table.
+    $html .= '</tbody></table>';
+
+    // The original callback echoed output, which can render in the wrong location; return it as required by the shortcode API.
+    return $html;
 }
 add_shortcode('acme_products', 'acme_render_products');
 
