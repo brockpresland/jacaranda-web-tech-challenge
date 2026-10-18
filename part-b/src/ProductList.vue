@@ -1,5 +1,5 @@
 <script setup>
-// `computed` will create the filtered product list in a later step.
+// Vue's Composition API utilities provide reactive state, derived values, and lifecycle handling.
 import { ref, computed, onMounted } from 'vue'
 
 // The product data loads from public/products.json.
@@ -33,8 +33,6 @@ const filteredProducts = computed(() => {
 // Formats numeric rates consistently with exactly two digits after the decimal point.
 const formatRate = (rate) => Number(rate).toFixed(2)
 
-// TODO: show how many products match (a result count).
-// TODO: show a sensible empty state when nothing matches.
 </script>
 
 <template>
@@ -59,13 +57,20 @@ const formatRate = (rate) => Number(rate).toFixed(2)
       <option value="debt-consolidation">Debt consolidation</option>
     </select>
 
-    <!-- TODO: add a result count and an empty state. -->
+    <!-- Announces the current number of matches when either filter changes. -->
+    <p aria-live="polite">
+      {{ filteredProducts.length }} {{ filteredProducts.length === 1 ? 'product' : 'products' }} found
+    </p>
+
     <!-- Renders only products that satisfy both filters and formats their rates. -->
-    <ul>
+    <ul v-if="filteredProducts.length">
       <li v-for="product in filteredProducts" :key="product.name">
         {{ product.name }} — {{ product.lender }} — {{ formatRate(product.rate) }}%
       </li>
     </ul>
+
+    <!-- Replaces the empty list with useful feedback when no products match. -->
+    <p v-else>No products match your filters.</p>
   </section>
 </template>
 
